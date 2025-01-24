@@ -1,0 +1,36 @@
+/* src/RaceTrack.css */
+
+/* Main container that holds all lanes */
+.race-container {
+    width: 100%;
+    border: 1px solid #ccc;
+    background: #fafafa;
+    padding: 10px;
+  }
+  
+  /* Each lane is a horizontal row for a single rabbit */
+  .lane {
+    position: relative;
+    height: 30px;
+    margin-bottom: 5px;
+    border-bottom: 1px dashed #999;
+  }
+  
+  /* The "rabbit" is absolutely positioned, moving from left:0% to left:100% */
+  .rabbit {
+    position: absolute;
+    top: 0;
+    height: 30px;
+    line-height: 30px;
+    background: #ffdb4d;
+    padding: 0 10px;
+    border-radius: 5px;
+    font-weight: bold;
+    transition: left 0.5s ease; /* Smooth movement */
+  }
+  
+  /* When a rabbit is the winner, we color it green */
+  .rabbit.winner {
+    background: #85e085;
+  }
+  

@@ -2,29 +2,36 @@
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 
-// Adjust paths/names depending on how you exported your JSON
+import "./App.css"; // Our global styling
+
 import CasinoTokenABI from "./contracts/CasinoTokenABI.json";
 import RabbitRunGameABI from "./contracts/RabbitRunGameABI.json";
 
-function App() {
-  // Replace these with your deployed Sepolia addresses
-  const CASINO_TOKEN_ADDRESS = "0xF9f4CEF0aC44ac2fE94Cb1e3D5bcA3594607490e";
-  const RABBIT_RUN_GAME_ADDRESS = "0xd8b934580fcE35a11B58C6D73aDeE468a2833fa8";
+import RaceTrack from "./RaceTrack";
+import "./RaceTrack.css";
 
-  // React state
+function App() {
+  // Replace these with your addresses
+  const CASINO_TOKEN_ADDRESS = "0xF9f4CEF0aC44ac2fE94Cb1e3D5bcA3594607490e";
+  const RABBIT_RUN_GAME_ADDRESS = "0xe3188b1b0c230bd9035ed3392b3b57f3923df7b4";
+
   const [account, setAccount] = useState(null);
   const [provider, setProvider] = useState(null);
   const [signer, setSigner] = useState(null);
 
-  // We’ll keep references to the contract objects
   const [casinoToken, setCasinoToken] = useState(null);
   const [rabbitRunGame, setRabbitRunGame] = useState(null);
 
-  const [balance, setBalance] = useState("0");  // CasinoToken balance
+  const [balance, setBalance] = useState("0");
   const [rabbitNumber, setRabbitNumber] = useState("");
   const [betAmount, setBetAmount] = useState("");
-
   const [testingMode, setTestingMode] = useState(false);
+
+  const [lastRaceResult, setLastRaceResult] = useState(null);
+  const [isRaceActive, setIsRaceActive] = useState(false);
+
+  // We'll use this for user feedback or status messages
+  const [statusMessage, setStatusMessage] = useState("");
 
   // 1) Connect to Metamask
   async function connectWallet() {
@@ -32,8 +39,8 @@ function App() {
       alert("Please install Metamask!");
       return;
     }
-
     try {
+      setStatusMessage("Connecting wallet...");
       await window.ethereum.request({ method: "eth_requestAccounts" });
       const _provider = new ethers.BrowserProvider(window.ethereum);
       const _signer = await _provider.getSigner();
@@ -43,7 +50,7 @@ function App() {
       setSigner(_signer);
       setAccount(_account);
 
-      // Create contract instances
+      // Instantiate contracts
       const casinoTokenContract = new ethers.Contract(
         CASINO_TOKEN_ADDRESS,
         CasinoTokenABI,
@@ -58,180 +65,228 @@ function App() {
       );
       setRabbitRunGame(rabbitRunContract);
 
-      console.log("Connected as:", _account);
-      alert("Connected to Metamask!");
+      setStatusMessage("Wallet connected.");
     } catch (err) {
       console.error(err);
-      alert("Failed to connect wallet.");
+      setStatusMessage("Failed to connect wallet.");
     }
   }
 
-  // 2) Fetch CasinoToken balance for the connected account
+  // 2) Fetch CasinoToken balance
   async function fetchBalance() {
     if (!casinoToken || !account) return;
     try {
+      setStatusMessage("Fetching balance...");
       const bal = await casinoToken.balanceOf(account);
       setBalance(ethers.formatEther(bal));
+      setStatusMessage("");
     } catch (err) {
       console.error(err);
-      alert("Failed to fetch balance.");
+      setStatusMessage("Failed to fetch balance.");
     }
   }
 
-  // 3) Approve tokens for the game contract
+  // 3) Approve tokens
   async function approveTokens() {
     if (!casinoToken || !betAmount) {
-      alert("Need betAmount first.");
+      alert("Enter a betAmount first.");
       return;
     }
     try {
+      setStatusMessage("Approving tokens...");
       const tx = await casinoToken.approve(
         RABBIT_RUN_GAME_ADDRESS,
         ethers.parseEther(betAmount)
       );
       await tx.wait();
-      alert("Tokens approved!");
+      setStatusMessage("Tokens approved!");
     } catch (err) {
       console.error(err);
-      alert("Approval failed.");
+      setStatusMessage("Approval failed.");
     }
   }
 
   // 4) Place bet
   async function placeBet() {
     if (!rabbitRunGame || !betAmount || !rabbitNumber) {
-      alert("Need betAmount and rabbitNumber.");
+      alert("Enter betAmount and rabbitNumber first.");
       return;
     }
     try {
+      setStatusMessage(`Placing bet on Rabbit #${rabbitNumber} for ${betAmount} CST...`);
       const tx = await rabbitRunGame.placeBet(
         parseInt(rabbitNumber),
         ethers.parseEther(betAmount)
       );
       await tx.wait();
-      alert("Bet placed!");
+      setStatusMessage("Bet placed!");
     } catch (err) {
       console.error(err);
-      alert("Bet failed.");
+      setStatusMessage("Bet failed.");
     }
   }
 
-  // 5) Start the race
+  // 5) Start Race
   async function startRace() {
     if (!rabbitRunGame) return;
     try {
+      setStatusMessage("Starting race...");
+      setIsRaceActive(true); // show the animation
+
       const tx = await rabbitRunGame.startRace();
       await tx.wait();
-      alert("Race started! If testingMode=false, wait for VRF callback. If true, call testFulfillRandomWords.");
+
+      setStatusMessage("Race started! If testingMode=false, wait for VRF. If true, call testFulfillRandomWords.");
     } catch (err) {
       console.error(err);
-      alert("startRace failed.");
+      setStatusMessage("startRace failed.");
+      setIsRaceActive(false);
     }
   }
 
-  // (Optional) Manually fulfill random words (only if testingMode == true & you are rakeWallet)
+  // Testing fallback
   async function testFulfillRandomWords(fakeNumber) {
     if (!rabbitRunGame) return;
     try {
+      setStatusMessage(`Simulating VRF with ${fakeNumber}...`);
       const tx = await rabbitRunGame.testFulfillRandomWords(fakeNumber);
       await tx.wait();
-      alert("Simulated VRF with " + fakeNumber);
+      setStatusMessage("Simulated VRF done.");
     } catch (err) {
       console.error(err);
-      alert("Manual VRF failed. Are you rakeWallet? testingMode on?");
+      setStatusMessage("Manual VRF failed. Are you rakeWallet? testingMode on?");
     }
   }
 
-  // 6) Check testingMode from chain
+  // Check testing mode from contract
   async function checkTestingMode() {
     if (!rabbitRunGame) return;
     try {
       const mode = await rabbitRunGame.testingMode();
       setTestingMode(mode);
+      setStatusMessage(`testingMode: ${mode}`);
     } catch (err) {
       console.error(err);
-      alert("Failed to read testingMode.");
+      setStatusMessage("Failed to read testingMode.");
     }
   }
 
-  // 7) Optionally toggle testingMode
+  // Toggle testing mode
   async function toggleTestingMode() {
     if (!rabbitRunGame) return;
     try {
+      setStatusMessage("Toggling testing mode...");
       const newMode = !testingMode;
       const tx = await rabbitRunGame.toggleTestingMode(newMode);
       await tx.wait();
-      alert("Testing mode set to: " + newMode);
       setTestingMode(newMode);
+      setStatusMessage(`testingMode = ${newMode}`);
     } catch (err) {
       console.error(err);
-      alert("Toggle testingMode failed. Are you rakeWallet?");
+      setStatusMessage("Toggle testingMode failed. Are you rakeWallet?");
     }
   }
 
-  // Refresh balance any time we have a contract & account
+  // On component or contract load, fetch balance if we have them
   useEffect(() => {
     if (casinoToken && account) {
       fetchBalance();
     }
   }, [casinoToken, account]);
 
+  // Listen for the RaceResult event
+  useEffect(() => {
+    if (!rabbitRunGame || !account) return;
+
+    const handleRaceResult = (user, winningRabbit, didWin, payout) => {
+      setIsRaceActive(false);
+      let msg = `Race is over! Rabbit #${winningRabbit} won.`;
+      if (user.toLowerCase() === account.toLowerCase()) {
+        msg += didWin ? " You WON your bet!" : " You lost the bet.";
+      }
+
+      setLastRaceResult({
+        user,
+        winningRabbit: Number(winningRabbit),
+        didWin,
+        payout: ethers.formatEther(payout),
+      });
+      setStatusMessage(msg);
+    };
+
+    rabbitRunGame.on("RaceResult", handleRaceResult);
+    return () => {
+      rabbitRunGame.off("RaceResult", handleRaceResult);
+    };
+  }, [rabbitRunGame, account]);
+
   return (
-    <div style={{ padding: 20 }}>
-      <h1>RabbitRun Game UI (Sepolia VRF v2.5)</h1>
-      {!account && (
-        <button onClick={connectWallet}>Connect Wallet</button>
-      )}
-      {account && <p>Connected as: {account}</p>}
+    <div className="app-container">
+      {/* Left Panel */}
+      <div className="left-panel">
+        <h1>Rabbit Run Casino</h1>
+        {!account && <button onClick={connectWallet}>Connect Wallet</button>}
+        {account && <p>Connected as: {account}</p>}
 
-      <div style={{ marginTop: 10 }}>
         <button onClick={fetchBalance}>Refresh Balance</button>
-        <p>Your CasinoToken balance: {balance} CST</p>
-      </div>
+        <p>Your balance: {balance} CST</p>
 
-      <hr />
+        <hr style={{ margin: "10px 0" }} />
 
-      <div>
-        <h2>Bet Setup</h2>
-        <label>Rabbit # (1..10): </label>
+        <p>Rabbit # (1..10):</p>
         <input
           type="number"
           value={rabbitNumber}
           onChange={(e) => setRabbitNumber(e.target.value)}
         />
-        <br />
 
-        <label>Bet Amount (CST): </label>
+        <p>Bet Amount (CST):</p>
         <input
           type="text"
           value={betAmount}
           onChange={(e) => setBetAmount(e.target.value)}
         />
-        <br />
 
-        <button onClick={approveTokens}>Approve Tokens</button>
+        <button onClick={approveTokens}>Approve</button>
         <button onClick={placeBet}>Place Bet</button>
-      </div>
-
-      <div style={{ marginTop: 10 }}>
         <button onClick={startRace}>Start Race</button>
+
+        <hr style={{ margin: "10px 0" }} />
+
+        <button onClick={checkTestingMode}>Check Testing Mode</button>
+        <p>Mode: {testingMode ? "TESTING" : "REAL VRF"}</p>
+        <button onClick={toggleTestingMode}>Toggle Testing</button>
+        <button onClick={() => testFulfillRandomWords(42)}>
+          testFulfill(42)
+        </button>
+
+        <div className="status-message">{statusMessage}</div>
       </div>
 
-      <hr />
+      {/* Right Panel */}
+      <div className="right-panel">
+        {/* RaceTrack area */}
+        <div className="race-area">
+          <RaceTrack
+            winningRabbit={lastRaceResult?.winningRabbit || 0}
+            raceInProgress={isRaceActive}
+          />
+        </div>
 
-      <div>
-        <h2>Testing Mode Section</h2>
-        <button onClick={checkTestingMode}>Check Testing Mode</button>
-        <p>Current Mode: {testingMode ? "TESTING (true)" : "REAL VRF (false)"}</p>
-        <button onClick={toggleTestingMode}>
-          Toggle Testing Mode
-        </button>
-        <br />
-
-        <label>Fake Random #: </label>
-        <button onClick={() => testFulfillRandomWords(42)}>
-          testFulfillRandomWords(42)
-        </button>
+        {/* Info area at the bottom */}
+        <div className="info-area">
+          <h2>Last Race Result</h2>
+          {lastRaceResult ? (
+            <>
+              <p>User: {lastRaceResult.user}</p>
+              <p>Winning Rabbit: {lastRaceResult.winningRabbit}</p>
+              <p>Did YOU Win? {lastRaceResult.didWin ? "YES" : "NO"}</p>
+              <p>Payout: {lastRaceResult.payout} CST</p>
+            </>
+          ) : (
+            <p>No recent race result yet.</p>
+          )}
+        </div>
       </div>
     </div>
   );
