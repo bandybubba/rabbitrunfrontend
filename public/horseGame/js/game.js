@@ -81,7 +81,7 @@ var horseSettings = [
 		percent:80
 	},
 	{
-		name:'Red Rum',
+		name:'Jim James Jameson',
 		icon:'assets/icon_03.png',
 		race:'assets/horse_03.png',
 		odds:[
@@ -98,7 +98,7 @@ var horseSettings = [
 		percent:80
 	},
 	{
-		name:'Barbaro',
+		name:'Christopher Trotten',
 		icon:'assets/icon_04.png',
 		race:'assets/horse_04.png',
 		odds:[
