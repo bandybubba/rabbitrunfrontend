@@ -2,8 +2,7 @@
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 
-import "./App.css"; // Our global styling
-
+import "./App.css";
 import CasinoTokenABI from "./contracts/CasinoTokenABI.json";
 import RabbitRunGameABI from "./contracts/RabbitRunGameABI.json";
 
@@ -32,6 +31,12 @@ function App() {
 
   // We'll use this for user feedback or status messages
   const [statusMessage, setStatusMessage] = useState("");
+
+  // --- NEW: off-canvas menu state ---
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // --- NEW: which page is active? ---
+  const [activePage, setActivePage] = useState("rabbit-run");
 
   // 1) Connect to Metamask
   async function connectWallet() {
@@ -113,7 +118,9 @@ function App() {
       return;
     }
     try {
-      setStatusMessage(`Placing bet on Rabbit #${rabbitNumber} for ${betAmount} CST...`);
+      setStatusMessage(
+        `Placing bet on Rabbit #${rabbitNumber} for ${betAmount} CST...`
+      );
       const tx = await rabbitRunGame.placeBet(
         parseInt(rabbitNumber),
         ethers.parseEther(betAmount)
@@ -136,7 +143,9 @@ function App() {
       const tx = await rabbitRunGame.startRace();
       await tx.wait();
 
-      setStatusMessage("Race started! If testingMode=false, wait for VRF. If true, call testFulfillRandomWords.");
+      setStatusMessage(
+        "Race started! If testingMode=false, wait for VRF. If true, call testFulfillRandomWords."
+      );
     } catch (err) {
       console.error(err);
       setStatusMessage("startRace failed.");
@@ -154,7 +163,9 @@ function App() {
       setStatusMessage("Simulated VRF done.");
     } catch (err) {
       console.error(err);
-      setStatusMessage("Manual VRF failed. Are you rakeWallet? testingMode on?");
+      setStatusMessage(
+        "Manual VRF failed. Are you rakeWallet? testingMode on?"
+      );
     }
   }
 
@@ -220,11 +231,11 @@ function App() {
     };
   }, [rabbitRunGame, account]);
 
-  return (
-    <div className="app-container">
-      {/* Left Panel */}
-      <div className="left-panel">
-        <h1>Rabbit Run Casino</h1>
+  // --- Helper function to render the Rabbit Run page ---
+  const renderRabbitRunPage = () => {
+    return (
+      <div>
+        <h2>Rabbit Run Casino</h2>
         {!account && <button onClick={connectWallet}>Connect Wallet</button>}
         {account && <p>Connected as: {account}</p>}
 
@@ -261,12 +272,9 @@ function App() {
         </button>
 
         <div className="status-message">{statusMessage}</div>
-      </div>
 
-      {/* Right Panel */}
-      <div className="right-panel">
-        {/* RaceTrack area */}
-        <div className="race-area">
+        <div style={{ marginTop: "40px" }}>
+          {/* RaceTrack area */}
           <RaceTrack
             winningRabbit={lastRaceResult?.winningRabbit || 0}
             raceInProgress={isRaceActive}
@@ -287,6 +295,86 @@ function App() {
             <p>No recent race result yet.</p>
           )}
         </div>
+      </div>
+    );
+  };
+
+  // --- Placeholder for Blackjack ---
+  const renderBlackjackPage = () => {
+    return (
+      <div className="placeholder">
+        <h2>Blackjack (Coming Soon)</h2>
+        <p>This is just a placeholder for Blackjack.</p>
+      </div>
+    );
+  };
+
+  // --- Placeholder for other pages ---
+  const renderPlaceholderPage = (name) => {
+    return (
+      <div className="placeholder">
+        <h2>{name}</h2>
+        <p>More content coming soon...</p>
+      </div>
+    );
+  };
+
+  // Which "page" to show in the main content
+  const renderMainContent = () => {
+    switch (activePage) {
+      case "rabbit-run":
+        return renderRabbitRunPage();
+      case "blackjack":
+        return renderBlackjackPage();
+      case "placeholder1":
+        return renderPlaceholderPage("Placeholder Page 1");
+      case "placeholder2":
+        return renderPlaceholderPage("Placeholder Page 2");
+      default:
+        return (
+          <div className="placeholder">
+            <h2>404</h2>
+            <p>Page not found.</p>
+          </div>
+        );
+    }
+  };
+
+  // Toggle the off-canvas menu
+  const toggleMenu = () => {
+    setMenuOpen(!menuOpen);
+  };
+
+  // Close menu when clicking a link
+  const handleMenuClick = (page) => {
+    setActivePage(page);
+    setMenuOpen(false);
+  };
+
+  return (
+    <div className="app-container">
+      {/* Off-canvas wrapper so we can overlay the nav */}
+      <div className="off-canvas-wrapper">
+        {/* The button that toggles the menu */}
+        <button className="off-canvas-menu-button" onClick={toggleMenu}>
+          {menuOpen ? "Close Menu" : "Open Menu"}
+        </button>
+
+        {/* The actual off-canvas menu */}
+        <nav className={`off-canvas-menu ${menuOpen ? "open" : ""}`}>
+          <h2>Menu</h2>
+          <ul>
+            <li onClick={() => handleMenuClick("rabbit-run")}>Rabbit Run</li>
+            <li onClick={() => handleMenuClick("blackjack")}>Blackjack</li>
+            <li onClick={() => handleMenuClick("placeholder1")}>Placeholder 1</li>
+            <li onClick={() => handleMenuClick("placeholder2")}>Placeholder 2</li>
+          </ul>
+        </nav>
+      </div>
+
+      {/* Main content area */}
+      <div className="main-content">
+        {renderMainContent()}
       </div>
     </div>
   );

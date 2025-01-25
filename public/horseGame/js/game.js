@@ -47,7 +47,7 @@ var fieldSettings = [
 
 var horseSettings = [
 	{
-		name:'Secretariat',
+		name:'DMoney Parcheesy',
 		icon:'assets/icon_01.png',
 		race:'assets/horse_01.png',
 		odds:[
@@ -64,7 +64,7 @@ var horseSettings = [
 		percent:80
 	},
 	{
-		name:'Seattle Slew',
+		name:'KG Money Monster',
 		icon:'assets/icon_02.png',
 		race:'assets/horse_02.png',
 		odds:[
@@ -284,6 +284,7 @@ var betSettings = [
 	}
 ];
 
+
 //game settings
 var gameSettings = {
 	credit:100, //game credit
@@ -326,7 +327,6 @@ var shareTitle = 'Highscore on Horse Racing is $[SCORE]';//social share score ti
 var shareMessage = '$[SCORE] is mine new highscore on Horse Racing game! Try it now!'; //social share score message
 
 /*!
- *
  * GAME SETTING CUSTOMIZATION END
  *
  */
@@ -582,7 +582,6 @@ function buildGameButton(){
 		TweenMax.ticker.useRAF(false);
 	}, false);
 
-
 	window.addEventListener('focus', function() {
 		TweenMax.ticker.useRAF(true);
 	}, false);
@@ -591,6 +590,8 @@ function buildGameButton(){
 		createPercentage();
 	}
 }
+
+
 
 /*!
  * 
@@ -846,7 +847,7 @@ function resizeGameLayout(){
 	}
 }
 
- /*!
+/*!
  * 
  * STOP GAME - This is the function that runs to stop play game
  * 
@@ -1024,7 +1025,7 @@ function updateBetOptions(){
 	}
 }
 
- /*!
+/*!
  * 
  * BET TABLE - This is the function that runs to update bet table
  * 
@@ -2399,7 +2400,7 @@ function prepareRace(){
 		posData.y += posData.spaceY;
 	}
 
-	playSound('soundCallToPost');
+playSound('soundCallToPost');
 	playSoundLoop('soundAmbience');
 	dimShape.alpha = 1;
 	TweenMax.to(dimShape, 1, {delay:1.5, alpha:0, overwrite:true});
@@ -2623,7 +2624,7 @@ function loopField(deltaS){
 		}
 	}
 
-	horsesContainer.sortChildren(sortFunction);
+horsesContainer.sortChildren(sortFunction);
 }
 
 var sortFunction = function(obj1, obj2) {
@@ -2653,7 +2654,7 @@ function updateHorseScore(raceProgress){
 	}
 }
 
- /*!
+/*!
  * 
  * ANIMATE - This is the function that runs to animate objects
  * 
@@ -2788,7 +2789,7 @@ function toggleFullScreen() {
       document.documentElement.requestFullscreen();
     } else if (document.documentElement.msRequestFullscreen) {
       document.documentElement.msRequestFullscreen();
-    } else if (document.documentElement.mozRequestFullScreen) {
+    } else if (document.documentElement.mozCancelFullScreen) { // old firefox method
       document.documentElement.mozRequestFullScreen();
     } else if (document.documentElement.webkitRequestFullscreen) {
       document.documentElement.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
